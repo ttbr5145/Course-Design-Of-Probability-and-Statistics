@@ -1,0 +1,24 @@
+{
+  "name": "workspace",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://x-access-token:ghu_WPSV8Hdy2Jjl1VptMAdmFXcYi8as5d0qd5N5@github.com/ttbr5145/Course-Design-Of-Probability-and-Statistics.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ttbr5145/Course-Design-Of-Probability-and-Statistics/issues"
+  },
+  "homepage": "https://github.com/ttbr5145/Course-Design-Of-Probability-and-Statistics#readme",
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  }
+}
