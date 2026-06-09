@@ -426,6 +426,31 @@ section h3 {
   font-size: 1.3em;
 }
 
+#final-results table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+#final-results table th,
+#final-results table td {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  text-align: center;
+}
+
+#final-results table th {
+  background: rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+}
+
+#final-results .result-box {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
 #final-results .result-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
