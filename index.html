@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARIMA 时序分析工具</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>ARIMA 时序分析工具</h1>
+    <p class="subtitle">自动 ARIMA / ARMA / SARIMA 全流程分析</p>
+  </header>
+
+  <section id="config-section">
+    <h2>参数配置</h2>
+    <div class="config-grid">
+      <div class="config-item">
+        <label for="alpha">显著性水平 α</label>
+        <select id="alpha">
+          <option value="0.05" selected>0.05</option>
+          <option value="0.01">0.01</option>
+          <option value="0.10">0.10</option>
+        </select>
+      </div>
+      <div class="config-item">
+        <label for="dmax">差分最大阶数 d_max</label>
+        <input type="number" id="dmax" value="2" min="1" max="5">
+      </div>
+      <div class="config-item">
+        <label for="pqmax">p/q 阶数上限</label>
+        <input type="number" id="pqmax" value="5" min="1" max="10">
+      </div>
+      <div class="config-item">
+        <label for="pqmin">p/q 阶数下限</label>
+        <input type="number" id="pqmin" value="0" min="0" max="5">
+      </div>
+      <div class="config-item">
+        <label for="retry">模型重试次数</label>
+        <input type="number" id="retry" value="3" min="1" max="10">
+      </div>
+      <div class="config-item">
+        <label for="minsample">最小样本量</label>
+        <input type="number" id="minsample" value="30" min="10" max="100">
+      </div>
+      <div class="config-item">
+        <label for="testratio">测试集比例</label>
+        <input type="number" id="testratio" value="0.2" min="0.1" max="0.5" step="0.05">
+      </div>
+    </div>
+  </section>
+
+  <section id="upload-section">
+    <h2>1. 数据上传</h2>
+    <div class="upload-area">
+      <label for="fileInput" class="file-label">
+        <span class="upload-icon">📊</span>
+        <p>点击或拖拽 Excel 文件到此处</p>
+        <p class="hint">支持 .xlsx, .xls 格式</p>
+      </label>
+      <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;">
+    </div>
+    <div id="columnSelector" class="hidden">
+      <label for="valueColumn">选择数值列：</label>
+      <select id="valueColumn"></select>
+      <label for="dateColumn">选择时间列（可选）：</label>
+      <select id="dateColumn"><option value="">无（使用序号）</option></select>
+      <button id="startAnalysis">开始分析</button>
+    </div>
+    <div id="dataPreview" class="hidden">
+      <h3>数据预览</h3>
+      <div id="previewTable"></div>
+    </div>
+  </section>
+
+  <section id="workflow-section" class="hidden">
+    <h2>分析流程</h2>
+    <div id="workflow-container">
+      <div class="step" id="step-1">
+        <div class="step-header">
+          <span class="step-num">1</span>
+          <span class="step-title">数据校验</span>
+          <span class="step-status"></span>
+        </div>
+        <div class="step-content"></div>
+      </div>
+      <div class="step" id="step-2">
+        <div class="step-header">
+          <span class="step-num">2</span>
+          <span class="step-title">季节性初判</span>
+          <span class="step-status"></span>
+        </div>
+        <div class="step-content"></div>
+      </div>
+      <div class="step" id="step-3">
+        <div class="step-header">
+          <span class="step-num">3</span>
+          <span class="step-title">平稳性检验与差分</span>
+          <span class="step-status"></span>
+        </div>
+        <div class="step-content"></div>
+      </div>
+      <div class="step" id="step-4">
+        <div class="step-header">
+          <span class="step-num">4</span>
+          <span class="step-title">ACF/PACF 分析</span>
+          <span class="step-status"></span>
+        </div>
+        <div class="step-content"></div>
+      </div>
+      <div class="step" id="step-5">
+        <div class="step-header">
+          <span class="step-num">5</span>
+          <span class="step-title">p/q 阶数寻优</span>
+          <span class="step-status"></span>
+        </div>
+        <div class="step-content"></div>
+      </div>
+      <div class="step" id="step-6">
+        <div class="step-header">
+          <span class="step-num">6</span>
+          <span class="step-title">模型拟合与校验</span>
+          <span class="step-status"></span>
+        </div>
+        <div class="step-content"></div>
+      </div>
+      <div class="step" id="step-7">
+        <div class="step-header">
+          <span class="step-num">7</span>
+          <span class="step-title">残差白噪声检验</span>
+          <span class="step-status"></span>
+        </div>
+        <div class="step-content"></div>
+      </div>
+      <div class="step" id="step-8">
+        <div class="step-header">
+          <span class="step-num">8</span>
+          <span class="step-title">预测效果评估</span>
+          <span class="step-status"></span>
+        </div>
+        <div class="step-content"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="results-section" class="hidden">
+    <h2>最终结果</h2>
+    <div id="final-results"></div>
+  </section>
+
+  <section id="error-section" class="hidden">
+    <div id="error-content"></div>
+  </section>
+</div>
+
+<script src="stats.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
