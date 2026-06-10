@@ -367,6 +367,15 @@ body {
   color: white;
 }
 
+.btn-info {
+  background: var(--info);
+  color: white;
+}
+
+.btn-info:not(:disabled):hover {
+  background: #2563eb;
+}
+
 .btn-danger {
   background: var(--danger);
   color: white;

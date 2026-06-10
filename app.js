@@ -69,6 +69,12 @@
     });
   }
 
+  // 导出分析结果
+  const exportBtn = document.getElementById("exportBtn");
+  if (exportBtn) {
+    exportBtn.addEventListener("click", exportAnalysisReport);
+  }
+
   // 上传文件按钮
   if (chooseFileBtn) {
     chooseFileBtn.addEventListener("click", () => fileInput.click());
@@ -188,10 +194,11 @@
   // ============================================================
   async function runAllAnalysis() {
     analysisResult = { series: selectedValues.slice() };
+    const PAUSE_MS = 1200; // 每步暂停时间，让用户能看清中间结果
 
     // ---------- 步骤 1：数据校验 ----------
     goToStep(1);
-    await sleep(300);
+    await sleep(PAUSE_MS);
     const s1 = step1_validateData();
     if (s1.terminate) {
       renderStepError(1, s1.message);
@@ -199,10 +206,11 @@
     }
     markStepDone(1);
     enableNext(1);
+    await sleep(PAUSE_MS);
 
     // ---------- 步骤 2：季节性初判 ----------
     goToStep(2);
-    await sleep(300);
+    await sleep(PAUSE_MS);
     const s2 = step2_detectSeasonality();
     if (s2.switchToSARIMA) {
       renderStepError(2, s2.message);
@@ -210,10 +218,11 @@
     }
     markStepDone(2);
     enableNext(2);
+    await sleep(PAUSE_MS);
 
     // ---------- 步骤 3：平稳性 & 差分 ----------
     goToStep(3);
-    await sleep(300);
+    await sleep(PAUSE_MS);
     const s3 = step3_stationarity();
     if (s3.terminate) {
       renderStepError(3, s3.message);
@@ -223,10 +232,11 @@
     analysisResult.stationarySeries = s3.stationarySeries;
     markStepDone(3);
     enableNext(3);
+    await sleep(PAUSE_MS);
 
     // ---------- 步骤 4：ACF / PACF ----------
     goToStep(4);
-    await sleep(300);
+    await sleep(PAUSE_MS);
     const s4 = step4_acfPacf();
     if (s4.terminate) {
       renderStepError(4, s4.message);
@@ -234,10 +244,11 @@
     }
     markStepDone(4);
     enableNext(4);
+    await sleep(PAUSE_MS);
 
     // ---------- 步骤 5：p / q 阶数寻优 ----------
     goToStep(5);
-    await sleep(300);
+    await sleep(PAUSE_MS);
     const s5 = step5_selectOrder();
     if (s5.terminate) {
       renderStepError(5, s5.message);
@@ -245,12 +256,14 @@
     }
     analysisResult.bestP = s5.best.p;
     analysisResult.bestQ = s5.best.q;
+    analysisResult.step5 = { best: s5.best, grid: s5.grid };
     markStepDone(5);
     enableNext(5);
+    await sleep(PAUSE_MS);
 
     // ---------- 步骤 6：模型拟合 ----------
     goToStep(6);
-    await sleep(300);
+    await sleep(PAUSE_MS);
     const s6 = step6_fitModel();
     if (s6.terminate) {
       renderStepError(6, s6.message);
@@ -261,10 +274,11 @@
     analysisResult.finalQ = s6.finalQ;
     markStepDone(6);
     enableNext(6);
+    await sleep(PAUSE_MS);
 
     // ---------- 步骤 7：残差白噪声 ----------
     goToStep(7);
-    await sleep(300);
+    await sleep(PAUSE_MS);
     const s7 = step7_residualTest();
     if (s7.terminate) {
       renderStepError(7, s7.message);
@@ -273,10 +287,11 @@
     analysisResult.residual = s7;
     markStepDone(7);
     enableNext(7);
+    await sleep(PAUSE_MS);
 
     // ---------- 步骤 8：预测效果评估 ----------
     goToStep(8);
-    await sleep(300);
+    await sleep(PAUSE_MS);
     const s8 = step8_forecastEval();
     if (s8.terminate) {
       renderStepError(8, s8.message);
@@ -285,12 +300,20 @@
     analysisResult.forecast = s8;
     markStepDone(8);
     enableNext(8);
+    await sleep(PAUSE_MS);
 
     // ---------- 步骤 9：汇总 ----------
     goToStep(9);
-    await sleep(300);
+    await sleep(PAUSE_MS);
     renderFinalSummary();
     markStepDone(9);
+
+    // 启用导出按钮
+    if (exportBtn) exportBtn.disabled = false;
+
+    // 分析完成数秒后，跳回步骤 1，以便用户查看完整中间过程
+    await sleep(2500);
+    goToStep(1);
   }
 
   // ============================================================
@@ -340,6 +363,12 @@
 
     setTimeout(() => renderTimeSeriesChart(values, "原始时序", "step1-chart"), 100);
 
+    // 保存导出数据
+    analysisResult.step1 = {
+      n, minSample, mean: m, std, min: minV, max: maxV,
+      missingCount, outliers: outliers.length, rawData: values.slice()
+    };
+
     if (n < minSample || missingCount > 0) {
       return {
         terminate: true,
@@ -375,6 +404,15 @@
     }
     content.push(`</div>`);
     container.innerHTML = content.join("");
+
+    // 保存导出数据
+    analysisResult.step2 = {
+      hasSeasonality: season.hasSeasonality,
+      period: season.period,
+      ci: season.ci,
+      peaks: season.acfPeaks.slice(0, 10).map((p) => ({ lag: p.lag, acf: p.value }))
+    };
+
     return { switchToSARIMA: season.hasSeasonality, message: "季节性初判完成" };
   }
 
@@ -1010,5 +1048,170 @@
 
   function sleep(ms) {
     return new Promise((res) => setTimeout(res, ms));
+  }
+
+  // ============================================================
+  // 导出分析结果：多 sheet Excel 报告
+  // ============================================================
+  function exportAnalysisReport() {
+    try {
+      if (!analysisResult || !analysisResult.finalModel) {
+        showModal("提示", "<p>尚未完成分析，无数据可导出。</p>");
+        return;
+      }
+
+      const wb = XLSX.utils.book_new();
+      const p = analysisResult.finalP;
+      const d = analysisResult.d;
+      const q = analysisResult.finalQ;
+      const model = analysisResult.finalModel;
+      const alpha = parseFloat(document.getElementById("alpha").value) || 0.05;
+
+      // ---------- Sheet 1：分析摘要 ----------
+      const summary = [];
+      summary.push(["ARIMA 时序分析报告", ""]);
+      summary.push(["生成时间", new Date().toLocaleString()]);
+      summary.push([""]);
+      summary.push(["一、数据概览"]);
+      summary.push(["样本量", analysisResult.series.length]);
+      if (analysisResult.step1) {
+        const s1 = analysisResult.step1;
+        summary.push(["均值", +s1.mean.toFixed(4)]);
+        summary.push(["标准差", +s1.std.toFixed(4)]);
+        summary.push(["最小值", +s1.min.toFixed(4)]);
+        summary.push(["最大值", +s1.max.toFixed(4)]);
+        summary.push(["缺失值数", s1.missingCount]);
+        summary.push(["潜在异常值数", s1.outliers]);
+      }
+      summary.push([""]);
+      summary.push(["二、模型设定"]);
+      summary.push(["模型形式", `ARIMA(${p}, ${d}, ${q})`]);
+      summary.push(["显著性水平 α", alpha]);
+      summary.push(["差分阶数 d", d]);
+      summary.push(["AR 阶数 p", p]);
+      summary.push(["MA 阶数 q", q]);
+      const aicVal = Stats.aic(model.residuals, p + q);
+      const bicVal = Stats.bic(model.residuals, p + q);
+      summary.push(["AIC", +aicVal.toFixed(4)]);
+      summary.push(["BIC", +bicVal.toFixed(4)]);
+      summary.push(["残差方差 σ²", +model.sigma2.toFixed(6)]);
+      summary.push([""]);
+      summary.push(["三、诊断结论"]);
+      summary.push(["AR 平稳性", model.arStationary !== false ? "满足" : "不满足"]);
+      summary.push(["MA 可逆性", model.maInvertible !== false ? "满足" : "不满足"]);
+      if (analysisResult.residual && analysisResult.residual.lb) {
+        summary.push(["Ljung-Box p 值", +analysisResult.residual.lb.pValue.toFixed(4)]);
+        summary.push(["残差白噪声", analysisResult.residual.lb.pValue > alpha ? "通过" : "未通过"]);
+      }
+      if (analysisResult.forecast && analysisResult.forecast.outMetrics) {
+        const out = analysisResult.forecast.outMetrics;
+        summary.push([""]);
+        summary.push(["四、预测效果（样本外）"]);
+        summary.push(["RMSE", +out.RMSE.toFixed(4)]);
+        summary.push(["MAE", +out.MAE.toFixed(4)]);
+        if (!isNaN(out.MAPE)) summary.push(["MAPE(%)", +out.MAPE.toFixed(2)]);
+      }
+      const wsSummary = XLSX.utils.aoa_to_sheet(summary);
+      wsSummary["!cols"] = [{ wch: 28 }, { wch: 24 }];
+      XLSX.utils.book_append_sheet(wb, wsSummary, "分析摘要");
+
+      // ---------- Sheet 2：原始数据 & 平稳序列 ----------
+      const rawRows = [["期数", "原始值"]];
+      analysisResult.series.forEach((v, i) => rawRows.push([i + 1, v]));
+      if (analysisResult.stationarySeries) {
+        rawRows[0].push(d === 0 ? "平稳序列" : `${d} 阶差分`);
+        analysisResult.stationarySeries.forEach((v, i) => {
+          const rowIdx = i + 1;
+          if (!rawRows[rowIdx]) rawRows[rowIdx] = [rowIdx];
+          rawRows[rowIdx].push(+v.toFixed(6));
+        });
+      }
+      const wsRaw = XLSX.utils.aoa_to_sheet(rawRows);
+      wsRaw["!cols"] = [{ wch: 10 }, { wch: 16 }, { wch: 16 }];
+      XLSX.utils.book_append_sheet(wb, wsRaw, "原始与平稳序列");
+
+      // ---------- Sheet 3：ACF / PACF ----------
+      const acfVals = Stats.acf(analysisResult.stationarySeries || analysisResult.series, Math.min(30, Math.floor(analysisResult.series.length / 3)));
+      const pacfVals = Stats.pacf(analysisResult.stationarySeries || analysisResult.series, Math.min(30, Math.floor(analysisResult.series.length / 3)));
+      const corrRows = [["滞后阶", "ACF", "PACF"]];
+      for (let k = 0; k < acfVals.length; k++) {
+        corrRows.push([k, +(acfVals[k] || 0).toFixed(6), +(pacfVals[k] || 0).toFixed(6)]);
+      }
+      const wsCorr = XLSX.utils.aoa_to_sheet(corrRows);
+      wsCorr["!cols"] = [{ wch: 10 }, { wch: 14 }, { wch: 14 }];
+      XLSX.utils.book_append_sheet(wb, wsCorr, "ACF_PACF");
+
+      // ---------- Sheet 4：阶数网格（如已保存）----------
+      if (analysisResult.step5 && analysisResult.step5.grid) {
+        const gridRows = [["p", "q", "AIC", "BIC"]];
+        analysisResult.step5.grid.forEach((g) => {
+          gridRows.push([g.p, g.q, +g.aic.toFixed(4), +g.bic.toFixed(4)]);
+        });
+        const wsGrid = XLSX.utils.aoa_to_sheet(gridRows);
+        wsGrid["!cols"] = [{ wch: 8 }, { wch: 8 }, { wch: 14 }, { wch: 14 }];
+        XLSX.utils.book_append_sheet(wb, wsGrid, "阶数网格");
+      }
+
+      // ---------- Sheet 5：模型系数 ----------
+      const coefRows = [["参数", "估计值", "标准误", "p 值", "显著性"]];
+      const se = model.se || [];
+      const pvals = model.pValues || [];
+      const arCoefs = model.arCoefs || [];
+      const maCoefs = model.maCoefs || [];
+      for (let i = 0; i < p; i++) {
+        const sig = pvals[i] < alpha ? "显著" : "不显著";
+        coefRows.push([`AR(${i + 1})`, +arCoefs[i].toFixed(6), se[i] ? +se[i].toFixed(6) : "—", pvals[i] ? +pvals[i].toFixed(4) : "—", sig]);
+      }
+      for (let j = 0; j < q; j++) {
+        const idx = p + j;
+        const sig = pvals[idx] < alpha ? "显著" : "不显著";
+        coefRows.push([`MA(${j + 1})`, +maCoefs[j].toFixed(6), se[idx] ? +se[idx].toFixed(6) : "—", pvals[idx] ? +pvals[idx].toFixed(4) : "—", sig]);
+      }
+      const wsCoef = XLSX.utils.aoa_to_sheet(coefRows);
+      wsCoef["!cols"] = [{ wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 10 }];
+      XLSX.utils.book_append_sheet(wb, wsCoef, "模型系数");
+
+      // ---------- Sheet 6：残差 ----------
+      const residRows = [["期数", "残差"]];
+      model.residuals.forEach((v, i) => residRows.push([i + 1, +v.toFixed(6)]));
+      const wsRes = XLSX.utils.aoa_to_sheet(residRows);
+      wsRes["!cols"] = [{ wch: 10 }, { wch: 16 }];
+      XLSX.utils.book_append_sheet(wb, wsRes, "残差序列");
+
+      // ---------- Sheet 7：预测 ----------
+      if (analysisResult.forecast) {
+        const fc = analysisResult.forecast;
+        const forecastRows = [["期数", "类型", "实际值", "预测值"]];
+        if (fc.inSampleActual && fc.inSamplePred) {
+          const base = fc.trainSize - fc.inSampleActual.length + 1;
+          for (let i = 0; i < fc.inSampleActual.length; i++) {
+            forecastRows.push([base + i, "样本内", +fc.inSampleActual[i].toFixed(6), +fc.inSamplePred[i].toFixed(6)]);
+          }
+        }
+        if (fc.testActual && fc.testPred) {
+          for (let i = 0; i < fc.testActual.length; i++) {
+            forecastRows.push([fc.trainSize + i + 1, "样本外", +fc.testActual[i].toFixed(6), +fc.testPred[i].toFixed(6)]);
+          }
+        }
+        // 未来 12 期预测
+        let stationaryFull = analysisResult.series.slice();
+        for (let i = 0; i < d; i++) stationaryFull = Stats.diff(stationaryFull, 1);
+        const futurePred = Stats.forecastARIMA(model, stationaryFull, 12, analysisResult.series.slice(-Math.max(d, 1) - 1), d);
+        for (let i = 0; i < futurePred.length; i++) {
+          forecastRows.push([analysisResult.series.length + i + 1, "未来预测", "", +futurePred[i].toFixed(6)]);
+        }
+        const wsFc = XLSX.utils.aoa_to_sheet(forecastRows);
+        wsFc["!cols"] = [{ wch: 10 }, { wch: 12 }, { wch: 16 }, { wch: 16 }];
+        XLSX.utils.book_append_sheet(wb, wsFc, "拟合与预测");
+      }
+
+      // ---------- 保存 ----------
+      const fileName = `ARIMA分析报告_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      showModal("导出成功", `<p>已生成报告：<strong>${fileName}</strong></p><p>共 ${wb.SheetNames.length} 个工作表，包含分析摘要、原始数据、ACF/PACF、模型系数、残差及预测结果。</p>`);
+    } catch (err) {
+      console.error(err);
+      showModal("导出失败", `<p>${err.message}</p>`);
+    }
   }
 })();
