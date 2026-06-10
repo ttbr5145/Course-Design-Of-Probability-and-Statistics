@@ -451,6 +451,7 @@ section h3 {
   margin-top: 20px;
 }
 
+
 #final-results .result-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
