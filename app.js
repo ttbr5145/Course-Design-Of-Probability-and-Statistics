@@ -194,11 +194,11 @@
   // ============================================================
   async function runAllAnalysis() {
     analysisResult = { series: selectedValues.slice() };
-    const PAUSE_MS = 1200; // 每步暂停时间，让用户能看清中间结果
+    const PAUSE_MS = 75; // 每步暂停时间，让用户能看清中间结果
 
     // ---------- 步骤 1：数据校验 ----------
     goToStep(1);
-    await sleep(PAUSE_MS);
+    // await sleep(PAUSE_MS);
     const s1 = step1_validateData();
     if (s1.terminate) {
       renderStepError(1, s1.message);
@@ -210,7 +210,7 @@
 
     // ---------- 步骤 2：季节性初判 ----------
     goToStep(2);
-    await sleep(PAUSE_MS);
+    // await sleep(PAUSE_MS);
     const s2 = step2_detectSeasonality();
     if (s2.switchToSARIMA) {
       renderStepError(2, s2.message);
@@ -222,7 +222,7 @@
 
     // ---------- 步骤 3：平稳性 & 差分 ----------
     goToStep(3);
-    await sleep(PAUSE_MS);
+    // await sleep(PAUSE_MS);
     const s3 = step3_stationarity();
     if (s3.terminate) {
       renderStepError(3, s3.message);
@@ -236,7 +236,7 @@
 
     // ---------- 步骤 4：ACF / PACF ----------
     goToStep(4);
-    await sleep(PAUSE_MS);
+    // await sleep(PAUSE_MS);
     const s4 = step4_acfPacf();
     if (s4.terminate) {
       renderStepError(4, s4.message);
@@ -248,7 +248,7 @@
 
     // ---------- 步骤 5：p / q 阶数寻优 ----------
     goToStep(5);
-    await sleep(PAUSE_MS);
+    // await sleep(PAUSE_MS);
     const s5 = step5_selectOrder();
     if (s5.terminate) {
       renderStepError(5, s5.message);
@@ -263,7 +263,7 @@
 
     // ---------- 步骤 6：模型拟合 ----------
     goToStep(6);
-    await sleep(PAUSE_MS);
+    // await sleep(PAUSE_MS);
     const s6 = step6_fitModel();
     if (s6.terminate) {
       renderStepError(6, s6.message);
@@ -278,7 +278,7 @@
 
     // ---------- 步骤 7：残差白噪声 ----------
     goToStep(7);
-    await sleep(PAUSE_MS);
+    // await sleep(PAUSE_MS);
     const s7 = step7_residualTest();
     if (s7.terminate) {
       renderStepError(7, s7.message);
@@ -291,7 +291,7 @@
 
     // ---------- 步骤 8：预测效果评估 ----------
     goToStep(8);
-    await sleep(PAUSE_MS);
+    // await sleep(PAUSE_MS);
     const s8 = step8_forecastEval();
     if (s8.terminate) {
       renderStepError(8, s8.message);
@@ -304,7 +304,7 @@
 
     // ---------- 步骤 9：汇总 ----------
     goToStep(9);
-    await sleep(PAUSE_MS);
+    // await sleep(PAUSE_MS);
     renderFinalSummary();
     markStepDone(9);
 
@@ -312,8 +312,8 @@
     if (exportBtn) exportBtn.disabled = false;
 
     // 分析完成数秒后，跳回步骤 1，以便用户查看完整中间过程
-    await sleep(2500);
-    goToStep(1);
+    // await sleep(2500);
+    // goToStep(1);
   }
 
   // ============================================================
