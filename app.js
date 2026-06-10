@@ -75,6 +75,12 @@
     exportBtn.addEventListener("click", exportAnalysisReport);
   }
 
+  // 查看分析详情：跳回步骤 1
+  const viewDetailsBtn = document.getElementById("viewDetailsBtn");
+  if (viewDetailsBtn) {
+    viewDetailsBtn.addEventListener("click", () => goToStep(1));
+  }
+
   // 上传文件按钮
   if (chooseFileBtn) {
     chooseFileBtn.addEventListener("click", () => fileInput.click());
