@@ -879,18 +879,18 @@
       d
     );
 
-    html += `<div style="background:rgba(255,255,255,0.15);padding:20px;border-radius:8px;margin-top:20px;">`;
+    html += `<div class="result-box">`;
     html += `<h3>🔮 未来 ${futureSteps} 期预测</h3>`;
-    html += `<table style="width:100%;color:#fff;margin-top:10px;"><thead><tr><th>期数</th><th>预测值</th></tr></thead><tbody>`;
+    html += `<table><thead><tr><th>期数</th><th>预测值</th></tr></thead><tbody>`;
     for (let i = 0; i < futurePred.length; i++) {
       html += `<tr><td>第 ${selectedValues.length + i + 1} 期</td><td>${futurePred[i].toFixed(4)}</td></tr>`;
     }
     html += `</tbody></table>`;
     html += `</div>`;
 
-    html += `<div style="background:rgba(255,255,255,0.15);padding:20px;border-radius:8px;margin-top:20px;">`;
+    html += `<div class="result-box">`;
     html += `<h3>📋 模型摘要</h3>`;
-    html += `<table style="width:100%;color:#fff;margin-top:10px;"><tbody>`;
+    html += `<table><tbody>`;
     html += `<tr><td style="width:50%;">模型类型</td><td><strong>${modelType}(${p}, ${d}, ${q})</strong></td></tr>`;
     html += `<tr><td>AR 系数个数</td><td>${p}</td></tr>`;
     html += `<tr><td>MA 系数个数</td><td>${q}</td></tr>`;
