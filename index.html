@@ -10,150 +10,243 @@
 </head>
 <body>
 <div class="container">
-  <header>
-    <h1>ARIMA 时序分析工具</h1>
-    <p class="subtitle">自动 ARIMA / ARMA / SARIMA 全流程分析</p>
+  <header class="header">
+    <h1>📊 ARIMA 时序分析工具</h1>
+    <p class="subtitle">上传 Excel 数据，逐步完成 ARIMA / ARMA 建模全流程</p>
   </header>
 
-  <section id="config-section">
-    <h2>参数配置</h2>
-    <div class="config-grid">
-      <div class="config-item">
-        <label for="alpha">显著性水平 α</label>
-        <select id="alpha">
-          <option value="0.05" selected>0.05</option>
-          <option value="0.01">0.01</option>
-          <option value="0.10">0.10</option>
-        </select>
-      </div>
-      <div class="config-item">
-        <label for="dmax">差分最大阶数 d_max</label>
-        <input type="number" id="dmax" value="2" min="1" max="5">
-      </div>
-      <div class="config-item">
-        <label for="pqmax">p/q 阶数上限</label>
-        <input type="number" id="pqmax" value="5" min="1" max="10">
-      </div>
-      <div class="config-item">
-        <label for="pqmin">p/q 阶数下限</label>
-        <input type="number" id="pqmin" value="0" min="0" max="5">
-      </div>
-      <div class="config-item">
-        <label for="retry">模型重试次数</label>
-        <input type="number" id="retry" value="3" min="1" max="10">
-      </div>
-      <div class="config-item">
-        <label for="minsample">最小样本量</label>
-        <input type="number" id="minsample" value="30" min="10" max="100">
-      </div>
-      <div class="config-item">
-        <label for="testratio">测试集比例</label>
-        <input type="number" id="testratio" value="0.2" min="0.1" max="0.5" step="0.05">
-      </div>
-    </div>
-  </section>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
 
-  <section id="upload-section">
-    <h2>1. 数据上传</h2>
-    <div class="upload-area">
-      <label for="fileInput" class="file-label">
-        <span class="upload-icon">📊</span>
-        <p>点击或拖拽 Excel 文件到此处</p>
-        <p class="hint">支持 .xlsx, .xls 格式</p>
-      </label>
-      <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;">
+  <div class="steps-nav">
+    <div class="step-item active" data-step="0">
+      <span class="step-num">0</span>
+      <span class="step-label">数据导入</span>
     </div>
-    <div id="columnSelector" class="hidden">
-      <label for="valueColumn">选择数值列：</label>
-      <select id="valueColumn"></select>
-      <label for="dateColumn">选择时间列（可选）：</label>
-      <select id="dateColumn"><option value="">无（使用序号）</option></select>
-      <button id="startAnalysis">开始分析</button>
+    <div class="step-item" data-step="1">
+      <span class="step-num">1</span>
+      <span class="step-label">数据校验</span>
     </div>
-    <div id="dataPreview" class="hidden">
-      <h3>数据预览</h3>
-      <div id="previewTable"></div>
+    <div class="step-item" data-step="2">
+      <span class="step-num">2</span>
+      <span class="step-label">季节性初判</span>
     </div>
-  </section>
+    <div class="step-item" data-step="3">
+      <span class="step-num">3</span>
+      <span class="step-label">平稳性检验</span>
+    </div>
+    <div class="step-item" data-step="4">
+      <span class="step-num">4</span>
+      <span class="step-label">ACF / PACF</span>
+    </div>
+    <div class="step-item" data-step="5">
+      <span class="step-num">5</span>
+      <span class="step-label">阶数寻优</span>
+    </div>
+    <div class="step-item" data-step="6">
+      <span class="step-num">6</span>
+      <span class="step-label">模型拟合</span>
+    </div>
+    <div class="step-item" data-step="7">
+      <span class="step-num">7</span>
+      <span class="step-label">残差检验</span>
+    </div>
+    <div class="step-item" data-step="8">
+      <span class="step-num">8</span>
+      <span class="step-label">预测评估</span>
+    </div>
+    <div class="step-item" data-step="9">
+      <span class="step-num">9</span>
+      <span class="step-label">最终结果</span>
+    </div>
+  </div>
 
-  <section id="workflow-section" class="hidden">
-    <h2>分析流程</h2>
-    <div id="workflow-container">
-      <div class="step" id="step-1">
-        <div class="step-header">
-          <span class="step-num">1</span>
-          <span class="step-title">数据校验</span>
-          <span class="step-status"></span>
+  <main class="main-content" id="mainContent">
+    <!-- 步骤 0：数据导入 + 参数配置 -->
+    <section class="step-panel active" id="step-panel-0">
+      <h2>步骤 0：数据导入与参数设置</h2>
+
+      <div class="card">
+        <h3>⚙️ 分析参数</h3>
+        <div class="config-grid">
+          <div class="form-group">
+            <label for="alpha">显著性水平 α</label>
+            <select id="alpha">
+              <option value="0.10">0.10（较宽松）</option>
+              <option value="0.05" selected>0.05（标准）</option>
+              <option value="0.01">0.01（较严格）</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="dmax">差分最大阶数 d_max</label>
+            <input type="number" id="dmax" value="2" min="1" max="5">
+          </div>
+          <div class="form-group">
+            <label for="pqmax">p / q 阶数上限</label>
+            <input type="number" id="pqmax" value="5" min="1" max="10">
+          </div>
+          <div class="form-group">
+            <label for="pqmin">p / q 阶数下限</label>
+            <input type="number" id="pqmin" value="0" min="0" max="5">
+          </div>
+          <div class="form-group">
+            <label for="retry">模型重试次数</label>
+            <input type="number" id="retry" value="3" min="1" max="10">
+          </div>
+          <div class="form-group">
+            <label for="minsample">最小样本量</label>
+            <input type="number" id="minsample" value="30" min="10" max="100">
+          </div>
+          <div class="form-group">
+            <label for="testratio">测试集比例</label>
+            <input type="number" id="testratio" value="0.2" min="0.1" max="0.5" step="0.05">
+          </div>
         </div>
-        <div class="step-content"></div>
       </div>
-      <div class="step" id="step-2">
-        <div class="step-header">
-          <span class="step-num">2</span>
-          <span class="step-title">季节性初判</span>
-          <span class="step-status"></span>
+
+      <div class="card">
+        <h3>📤 上传 Excel 文件</h3>
+        <p class="hint">支持 .xlsx / .xls / .csv 格式。第一行为表头，每列是一个变量。</p>
+        <div class="upload-area" id="uploadArea">
+          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden>
+          <div class="upload-icon">📁</div>
+          <p>点击或拖拽文件到此处上传</p>
+          <button class="btn btn-primary" id="chooseFileBtn">选择文件</button>
+          <p id="fileName" class="file-name"></p>
         </div>
-        <div class="step-content"></div>
       </div>
-      <div class="step" id="step-3">
-        <div class="step-header">
-          <span class="step-num">3</span>
-          <span class="step-title">平稳性检验与差分</span>
-          <span class="step-status"></span>
+
+      <div class="card" id="varSelectCard" style="display:none;">
+        <h3>🎯 选择分析列</h3>
+        <p class="hint">请指定要分析的数值列，以及可选的时间列。</p>
+        <div class="var-select-grid">
+          <div class="form-group">
+            <label>数值列 <span class="required">*</span></label>
+            <select id="valueColumn"></select>
+          </div>
+          <div class="form-group">
+            <label>时间列（可选）</label>
+            <select id="dateColumn"><option value="">无（使用序号）</option></select>
+          </div>
         </div>
-        <div class="step-content"></div>
+        <div class="preview-box">
+          <h4>📋 数据预览（前 10 行）</h4>
+          <div id="dataPreview"></div>
+        </div>
       </div>
-      <div class="step" id="step-4">
-        <div class="step-header">
-          <span class="step-num">4</span>
-          <span class="step-title">ACF/PACF 分析</span>
-          <span class="step-status"></span>
-        </div>
-        <div class="step-content"></div>
+
+      <div class="step-actions">
+        <button class="btn btn-success" id="startAnalysisBtn" disabled>开始分析 →</button>
       </div>
-      <div class="step" id="step-5">
-        <div class="step-header">
-          <span class="step-num">5</span>
-          <span class="step-title">p/q 阶数寻优</span>
-          <span class="step-status"></span>
-        </div>
-        <div class="step-content"></div>
+    </section>
+
+    <!-- 步骤 1：数据校验 -->
+    <section class="step-panel" id="step-panel-1">
+      <h2>步骤 1：数据加载与基础校验</h2>
+      <div id="step1-output"></div>
+      <div class="step-actions">
+        <button class="btn btn-secondary" data-goto="0">← 返回</button>
+        <button class="btn btn-primary" id="toStep2Btn" disabled>继续下一步 →</button>
       </div>
-      <div class="step" id="step-6">
-        <div class="step-header">
-          <span class="step-num">6</span>
-          <span class="step-title">模型拟合与校验</span>
-          <span class="step-status"></span>
-        </div>
-        <div class="step-content"></div>
+    </section>
+
+    <!-- 步骤 2：季节性初判 -->
+    <section class="step-panel" id="step-panel-2">
+      <h2>步骤 2：季节性特征初步判断</h2>
+      <div id="step2-output"></div>
+      <div class="step-actions">
+        <button class="btn btn-secondary" data-goto="1">← 返回</button>
+        <button class="btn btn-primary" id="toStep3Btn" disabled>继续下一步 →</button>
       </div>
-      <div class="step" id="step-7">
-        <div class="step-header">
-          <span class="step-num">7</span>
-          <span class="step-title">残差白噪声检验</span>
-          <span class="step-status"></span>
-        </div>
-        <div class="step-content"></div>
+    </section>
+
+    <!-- 步骤 3：平稳性检验 -->
+    <section class="step-panel" id="step-panel-3">
+      <h2>步骤 3：平稳性检验与差分</h2>
+      <div id="step3-output"></div>
+      <div class="step-actions">
+        <button class="btn btn-secondary" data-goto="2">← 返回</button>
+        <button class="btn btn-primary" id="toStep4Btn" disabled>继续下一步 →</button>
       </div>
-      <div class="step" id="step-8">
-        <div class="step-header">
-          <span class="step-num">8</span>
-          <span class="step-title">预测效果评估</span>
-          <span class="step-status"></span>
-        </div>
-        <div class="step-content"></div>
+    </section>
+
+    <!-- 步骤 4：ACF / PACF -->
+    <section class="step-panel" id="step-panel-4">
+      <h2>步骤 4：ACF / PACF 相关分析</h2>
+      <div id="step4-output"></div>
+      <div class="step-actions">
+        <button class="btn btn-secondary" data-goto="3">← 返回</button>
+        <button class="btn btn-primary" id="toStep5Btn" disabled>继续下一步 →</button>
+      </div>
+    </section>
+
+    <!-- 步骤 5：阶数寻优 -->
+    <section class="step-panel" id="step-panel-5">
+      <h2>步骤 5：p / q 阶数网格寻优</h2>
+      <div id="step5-output"></div>
+      <div class="step-actions">
+        <button class="btn btn-secondary" data-goto="4">← 返回</button>
+        <button class="btn btn-primary" id="toStep6Btn" disabled>继续下一步 →</button>
+      </div>
+    </section>
+
+    <!-- 步骤 6：模型拟合 -->
+    <section class="step-panel" id="step-panel-6">
+      <h2>步骤 6：模型拟合与合法性校验</h2>
+      <div id="step6-output"></div>
+      <div class="step-actions">
+        <button class="btn btn-secondary" data-goto="5">← 返回</button>
+        <button class="btn btn-primary" id="toStep7Btn" disabled>继续下一步 →</button>
+      </div>
+    </section>
+
+    <!-- 步骤 7：残差白噪声检验 -->
+    <section class="step-panel" id="step-panel-7">
+      <h2>步骤 7：残差白噪声检验</h2>
+      <div id="step7-output"></div>
+      <div class="step-actions">
+        <button class="btn btn-secondary" data-goto="6">← 返回</button>
+        <button class="btn btn-primary" id="toStep8Btn" disabled>继续下一步 →</button>
+      </div>
+    </section>
+
+    <!-- 步骤 8：预测效果评估 -->
+    <section class="step-panel" id="step-panel-8">
+      <h2>步骤 8：样本内 / 样本外预测评估</h2>
+      <div id="step8-output"></div>
+      <div class="step-actions">
+        <button class="btn btn-secondary" data-goto="7">← 返回</button>
+        <button class="btn btn-primary" id="toStep9Btn" disabled>继续下一步 →</button>
+      </div>
+    </section>
+
+    <!-- 步骤 9：最终结果 -->
+    <section class="step-panel" id="step-panel-9">
+      <h2>步骤 9：最终结果与模型摘要</h2>
+      <div id="step9-output"></div>
+      <div class="step-actions">
+        <button class="btn btn-secondary" data-goto="8">← 返回</button>
+        <button class="btn btn-warning" id="restartBtn">🔄 重新开始</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- 结果提示弹窗 -->
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <h3 id="modalTitle">提示</h3>
+      <div id="modalBody"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="modalCancel" style="display:none;">取消</button>
+        <button class="btn btn-primary" id="modalConfirm">确定</button>
       </div>
     </div>
-  </section>
+  </div>
 
-  <section id="results-section" class="hidden">
-    <h2>最终结果</h2>
-    <div id="final-results"></div>
-  </section>
-
-  <section id="error-section" class="hidden">
-    <div id="error-content"></div>
-  </section>
+  <footer class="footer">
+    <p>⚠️ 本工具在浏览器本地运行，数据不会上传。仅供研究参考，正式分析请使用专业统计软件。</p>
+  </footer>
 </div>
 
 <script src="stats.js"></script>
